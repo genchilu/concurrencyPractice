@@ -52,7 +52,7 @@ func main() {
 		go testSignal(i, cond, &m, &wg)
 	}
 	wg.Wait()
-	//test confd
+	//test cond
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go testWait(i, cond, &m, &wg)

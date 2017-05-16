@@ -1,6 +1,7 @@
 package ringbufpadded
 
 import (
+	"runtime"
 	"sync/atomic"
 )
 
@@ -70,7 +71,12 @@ L:
 			panic("error while putting item into RingBufferPadded")
 
 		}
-		i++
+		if i == 10000 {
+			runtime.Gosched() // free up the cpu before the next iteration
+			i = 0
+		} else {
+			i++
+		}
 	}
 	ent.data = item
 	atomic.StoreUint64(&ent.position, pos+1)
@@ -95,7 +101,12 @@ L:
 		default:
 			panic("error while getting item into RingBufferPadded")
 		}
-		i++
+		if i == 10000 {
+			runtime.Gosched() // free up the cpu before the next iteration
+			i = 0
+		} else {
+			i++
+		}
 	}
 	data := ent.data
 	atomic.StoreUint64(&ent.position, pos+rb.mask+1)

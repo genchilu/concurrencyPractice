@@ -27,9 +27,9 @@ type entity struct {
 }
 
 type RingBufferPadded struct {
-	queue   uint64
+	head    uint64
 	_p1     [8]uint64
-	dequeue uint64
+	tail    uint64
 	_p2     [8]uint64
 	mask    uint64
 	_p3     [8]uint64
@@ -54,7 +54,7 @@ func (rb *RingBufferPadded) init(size uint64) {
 
 func (rb *RingBufferPadded) Put(item interface{}) error {
 	var ent *entity
-	pos := atomic.LoadUint64(&rb.queue)
+	pos := atomic.LoadUint64(&rb.head)
 	i := 0
 L:
 	for {
@@ -62,11 +62,11 @@ L:
 		seq := atomic.LoadUint64(&ent.position)
 		switch diff := seq - pos; {
 		case diff == 0:
-			if atomic.CompareAndSwapUint64(&rb.queue, pos, pos+1) {
+			if atomic.CompareAndSwapUint64(&rb.head, pos, pos+1) {
 				break L
 			}
 		case diff > 0:
-			pos = atomic.LoadUint64(&rb.queue)
+			pos = atomic.LoadUint64(&rb.head)
 		default:
 			panic("error while putting item into RingBufferPadded")
 
@@ -85,7 +85,7 @@ L:
 
 func (rb *RingBufferPadded) Get() (interface{}, error) {
 	var ent *entity
-	pos := atomic.LoadUint64(&rb.dequeue)
+	pos := atomic.LoadUint64(&rb.tail)
 	i := 0
 L:
 	for {
@@ -93,16 +93,16 @@ L:
 		seq := atomic.LoadUint64(&ent.position)
 		switch diff := seq - (pos + 1); {
 		case diff == 0:
-			if atomic.CompareAndSwapUint64(&rb.dequeue, pos, pos+1) {
+			if atomic.CompareAndSwapUint64(&rb.tail, pos, pos+1) {
 				break L
 			}
 		case diff > 0:
-			pos = atomic.LoadUint64(&rb.dequeue)
+			pos = atomic.LoadUint64(&rb.tail)
 		default:
 			panic("error while getting item into RingBufferPadded")
 		}
 		if i == 10000 {
-			runtime.Gosched() // free up the cpu before the next iteration
+			runtime.Gosched()
 			i = 0
 		} else {
 			i++

@@ -6,7 +6,7 @@ import (
 )
 
 func testAtomicIncrease(myatomic MyAtomic) {
-	paraNum := 100
+	paraNum := 10000
 	addTimes := 10000
 	var wg sync.WaitGroup
 	wg.Add(paraNum)
